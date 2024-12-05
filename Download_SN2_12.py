@@ -12,21 +12,6 @@ import shutil
 class SentinelDownloader:
     def __init__(self):
         # Configuration
-        """
-        Initialize the SentinelDownloader object.
-
-        Parameters
-        ----------
-        None
-
-        Notes
-        -----
-        This method sets up the configuration for the SentinelDownloader object.
-        The configuration includes the date range to look back for downloads, the user
-        credentials, the satellite configuration, the area of interest, the data
-        collection, and the tiles to process. The method also initializes the
-        necessary directories and sets up the download tracking.
-        """
         self.date_option = 1  # 1 = Number of days from now, 2 = Start Day to End Day
         self.num_days = 10 # specifies the total number of days from the current date to look back for downloads
         self.end_day = datetime.datetime.strptime('2024-11-30', '%Y-%m-%d').date()  # specify end date in YYYY-MM-DD format
@@ -35,9 +20,9 @@ class SentinelDownloader:
         
         # User credentials
         self.users = [
-            {'email': 'siripoom.su@gmail.com', 'password': '799M94401%f6'},
-            {'email': 'SIRIPOOM31155@gmail.com', 'password': 'iezLxeZ945$9tfmX*A*rDp3WHW$D8y'},
-            {'email': '6231302018@lamduan.mfu.ac.th', 'password': 'AVCwnQCNVs3ZVn%h&!NpJFxYF*nR9W'}
+            {'email': 'your_email_1', 'password': 'your_password_1'},
+            {'email': 'your_email_2', 'password': 'your_password_2'},
+            {'email': 'your_email_3', 'password': 'your_password_3'}
         ]
         
         # Satellite configuration
@@ -70,70 +55,29 @@ class SentinelDownloader:
         self.logger = None
 
     def setup_logging(self):
-        """Setup logging file with timestamp
-        
-        This method sets up the logging file with the current timestamp.
-        The logging file is created in the 'download_log' directory.
-        """
+        """Setup logging file with timestamp"""
         log_date = datetime.datetime.now()
         log_name = f"DownSN_GISTDA_LOG_{log_date.strftime('%Y%m%d%H%M')}.txt"
         log_path = self.log_dir / log_name
         self.logger = open(log_path, 'w')
         self.log_and_print('Download Sentinel-2 file')
-        self.log_and_print('Script Download Sentinel-2 From Gistda Version 1.12')
+        self.log_and_print('Script Download Sentinel-2 From Gistda Version 1.13')
         self.log_and_print(f"Starting time is: {datetime.datetime.now()}")
 
     def log_and_print(self, message):
-        """
-        Helper method to both print and log a message
-        
-        Parameters
-        ----------
-        message : str
-            The message to be logged and printed
-        
-        Notes
-        -----
-        This method is used to log and print messages throughout the downloading process.
-        It is useful for debugging and tracking the progress of the downloading process.
-        """
+        """Helper method to both print and log a message"""
         print(message)
         if self.logger:
             self.logger.write(f"{message}\n")
             self.logger.flush()
 
     def get_random_credentials(self):
-        """Get random user credentials
-        
-        This method is used to get a random user credentials from the list of users.
-        The user credentials are used to authenticate with the API.
-        """
+        """Get random user credentials"""
         user = random.choice(self.users)
         return user['email'], user['password']
 
     def get_keycloak_token(self, username: str, password: str) -> str:
-        """Get authentication token
-        
-        This method is used to get an authentication token from the Keycloak server.
-        The authentication token is then used to authenticate with the API.
-        
-        Parameters
-        ----------
-        username : str
-            The username to use for authentication
-        password : str
-            The password to use for authentication
-        
-        Returns
-        -------
-        str
-            The authentication token
-        
-        Raises
-        ------
-        Exception
-            If the authentication token creation fails
-        """
+        """Get authentication token"""
         data = {
             "client_id": "cdse-public",
             "username": username,
@@ -151,27 +95,7 @@ class SentinelDownloader:
             raise Exception(f"Keycloak token creation failed: {str(e)}")
 
     def calculate_date_ranges(self):
-        """
-        Calculate date ranges for search
-        
-        This method calculates the date ranges that will be used for searching Sentinel data.
-        The date ranges are calculated based on the date option chosen by the user. If the date
-        option is 1, the date range is calculated as the current date minus the number of days specified
-        by the user. If the date option is 2, the date range is the start date to the end date specified
-        by the user.
-        
-        The date ranges are then split into 10-day chunks. This is done to avoid hitting the API rate
-        limit.
-        
-        Parameters
-        ----------
-        None
-        
-        Returns
-        -------
-        list
-            The list of date ranges that will be used for searching Sentinel data
-        """
+        """Calculate date ranges for search"""
         if self.date_option == 1:
             start_date = self.end_day - timedelta(self.num_days)
             date_ranges = [[start_date.strftime("%Y-%m-%d"), self.end_day.strftime("%Y-%m-%d")]]
@@ -193,23 +117,8 @@ class SentinelDownloader:
         
         return final_ranges
 
-
     def search_sentinel_data(self, date_range, tile):
-        """
-        Search for Sentinel data based on the given date range and tile
-        
-        Parameters
-        ----------
-        date_range : list
-            The date range to search for
-        tile : str
-            The tile to search for
-        
-        Returns
-        -------
-        list
-            A list of tuples containing the product ID, name, checksum, and content length
-        """
+        """Search for Sentinel data based on the given date range and tile"""
         start_date, end_date = date_range
         try:
             # Construct the URL for the API query
@@ -242,21 +151,7 @@ class SentinelDownloader:
             return []
 
     def download_file(self, product, year_dir):
-        """
-        Download a single file with progress display
-        
-        Parameters
-        ----------
-        product : tuple
-            A tuple containing the product ID, name, checksum, and content length
-        year_dir : Path
-            The directory path to save the downloaded file
-        
-        Returns
-        -------
-        bool
-            True if the download is successful, False otherwise
-        """
+        """Download a single file with progress display"""
         try:
             # Get a random user credentials
             username, password = self.get_random_credentials()
@@ -305,12 +200,7 @@ class SentinelDownloader:
             return False
 
     def verify_downloads(self):
-        """
-        Verify all downloaded files
-        
-        This method verifies all downloaded files by checking if they exist and are valid zip files.
-        If a file is corrupt or missing, it is removed.
-        """
+        """Verify all downloaded files"""
         for filename in self.downloaded_files:
             year = filename[11:15]
             year_dir = self.data_dir / year
@@ -333,13 +223,7 @@ class SentinelDownloader:
 
     def run(self):
         """
-        Main execution method
-        
-        This method is the main entry point for the SentinelDownloader class. It sets up the logging,
-        calculates the date ranges to search for, and processes each date range and tile by searching
-        for products, filtering them by level, and downloading each product.
-        
-        :return: None
+        Main execution method to download one image per tile in each date range
         """
         try:
             self.setup_logging()
@@ -351,16 +235,26 @@ class SentinelDownloader:
             for date_range in date_ranges:
                 self.log_and_print(f"Processing date range: {date_range[0]} to {date_range[1]}")
                 
+                # Track tiles downloaded in this date range
+                tiles_downloaded_in_range = set()
+                
                 # Process each tile
                 for tile in self.tiles:
+                    # Skip if tile has already been downloaded in this date range
+                    if tile in tiles_downloaded_in_range:
+                        continue
+                    
                     # Search for products
                     products = self.search_sentinel_data(date_range, tile)
                     
                     # Filter products by level
                     products = [p for p in products if any(level in p[1] for level in self.levels)]
                     
-                    # Process each product
-                    for product in products:
+                    # If products found for this tile
+                    if products:
+                        # Select the first product (most recent)
+                        product = products[0]
+                        
                         year = product[1][11:15]
                         year_dir = self.data_dir / year
                         
@@ -373,20 +267,26 @@ class SentinelDownloader:
                         
                         if file_path.exists():
                             if zipfile.is_zipfile(file_path):
-                                # Skip if the file already exists and is valid
+                                # If file exists and is valid, mark tile as downloaded
+                                self.log_and_print(f"Tile {tile} already exists: {filename}")
+                                tiles_downloaded_in_range.add(tile)
                                 continue
                             else:
                                 # Remove the file if it is corrupt
                                 file_path.unlink()
                         
                         # Download file
-                        self.download_file(product, year_dir)
+                        if self.download_file(product, year_dir):
+                            tiles_downloaded_in_range.add(tile)
+                            self.log_and_print(f"Downloaded tile {tile}: {filename}")
+                
+                # Log tiles downloaded in this date range
+                self.log_and_print(f"Tiles downloaded in range {date_range}: {tiles_downloaded_in_range}")
             
             # Verify all downloads at the end
             self.verify_downloads()
             
             self.log_and_print("Download process completed successfully")
-            self.log_and_print("Sentinel-2 Imagery havee been success extracted")
             self.log_and_print(f"Ending time is: {datetime.datetime.now()}")
             
         except Exception as e:
