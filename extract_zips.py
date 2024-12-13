@@ -58,7 +58,7 @@ def extract_zips(root_folder):
 
 def extract_jp2_files(root_folder, output_folder):
     """
-    Extract only the highest resolution Sentinel-2 JP2 files (Bands 1 to 12, including Band 8A)
+    Extract the highest resolution Sentinel-2 JP2 files (Bands 1 to 12, including Band 8A and SCL)
     from the extracted folder structure.
 
     Args:
@@ -76,7 +76,10 @@ def extract_jp2_files(root_folder, output_folder):
 
     # Priority order for resolutions
     resolution_priority = ['R10m', 'R20m', 'R60m']
+    
+    # Separate dictionaries for bands and SCL
     jp2_files = {}
+    scl_files = {}
 
     for root, dirs, files in os.walk(root_folder):
         # Check if the current directory matches one of the resolution folders
@@ -92,14 +95,20 @@ def extract_jp2_files(root_folder, output_folder):
                     if len(parts) < 2:
                         continue
 
-                    band_identifier = parts[-2]  # Example: 'B02', 'B8A', etc.
+                    band_identifier = parts[-2]  # Example: 'B02', 'B8A', 'SCL'
+                    granule_id = parts[0] + "_" + parts[1]  # Unique identifier for granule
 
-                    # Ensure valid band (numeric 1–12 or explicitly '8A')
+                    # Handle SCL files
+                    if band_identifier == 'SCL':
+                        scl_files[granule_id] = (resolution, root, file)
+                        continue
+
+                    # Ensure valid band (numeric 1–12 or '8A')
                     if band_identifier.startswith('B') and (
-                        band_identifier[1:].isdigit() or band_identifier[1:] == '8A'
+                        band_identifier[1:].isdigit() or 
+                        band_identifier[1:] == '8A'
                     ):
                         band_number = band_identifier[1:]  # Strip 'B' to get '1', ..., '12', or '8A'
-                        granule_id = parts[0] + "_" + parts[1]  # Unique identifier for granule
 
                         # Track the highest resolution for each band
                         key = (granule_id, band_number)
@@ -109,7 +118,10 @@ def extract_jp2_files(root_folder, output_folder):
                 except Exception as e:
                     logging.error(f"Error processing file {file}: {e}")
 
-    # Copy the selected files to the output folder
+    # Combine band and SCL file extraction
+    processed_granules = set()
+
+    # Copy band files
     for (granule_id, band_number), (_, root, file) in jp2_files.items():
         try:
             granule_output_folder = os.path.join(output_folder, granule_id)
@@ -120,9 +132,27 @@ def extract_jp2_files(root_folder, output_folder):
 
             shutil.copy2(source_path, destination_path)
             logging.info(f"Copied {file} (Band {band_number}) to {granule_output_folder}")
+            
+            processed_granules.add(granule_id)
 
         except Exception as e:
             logging.error(f"Error copying file {file}: {e}")
+
+    # Copy corresponding SCL files
+    for granule_id, (_, root, file) in scl_files.items():
+        try:
+            # Only copy SCL if the corresponding granule's bands have been processed
+            if granule_id in processed_granules:
+                granule_output_folder = os.path.join(output_folder, granule_id)
+                
+                source_path = os.path.join(root, file)
+                destination_path = os.path.join(granule_output_folder, file)
+
+                shutil.copy2(source_path, destination_path)
+                logging.info(f"Copied {file} (SCL) to {granule_output_folder}")
+
+        except Exception as e:
+            logging.error(f"Error copying SCL file {file}: {e}")
 
 # Main execution
 if __name__ == "__main__":
