@@ -58,8 +58,8 @@ def extract_zips(root_folder):
 
 def extract_jp2_files(root_folder, output_folder):
     """
-    Extract the highest resolution Sentinel-2 JP2 files (Bands 1 to 12, including Band 8A and SCL)
-    from the extracted folder structure.
+    Extract the highest resolution Sentinel-2 JP2 files (Bands 1 to 12, including Band 8A)
+    and SCL files specifically at 20m resolution.
 
     Args:
         root_folder (str): Path to the root folder containing extracted .SAFE folders
@@ -98,9 +98,10 @@ def extract_jp2_files(root_folder, output_folder):
                     band_identifier = parts[-2]  # Example: 'B02', 'B8A', 'SCL'
                     granule_id = parts[0] + "_" + parts[1]  # Unique identifier for granule
 
-                    # Handle SCL files
+                    # Handle SCL files (only at 20m resolution)
                     if band_identifier == 'SCL':
-                        scl_files[granule_id] = (resolution, root, file)
+                        if resolution == 'R20m':  # Only consider SCL files at 20m resolution
+                            scl_files[granule_id] = (resolution, root, file)
                         continue
 
                     # Ensure valid band (numeric 1–12 or '8A')
@@ -138,8 +139,8 @@ def extract_jp2_files(root_folder, output_folder):
         except Exception as e:
             logging.error(f"Error copying file {file}: {e}")
 
-    # Copy corresponding SCL files
-    for granule_id, (_, root, file) in scl_files.items():
+    # Copy corresponding SCL files (only at 20m resolution)
+    for granule_id, (resolution, root, file) in scl_files.items():
         try:
             # Only copy SCL if the corresponding granule's bands have been processed
             if granule_id in processed_granules:
@@ -149,7 +150,7 @@ def extract_jp2_files(root_folder, output_folder):
                 destination_path = os.path.join(granule_output_folder, file)
 
                 shutil.copy2(source_path, destination_path)
-                logging.info(f"Copied {file} (SCL) to {granule_output_folder}")
+                logging.info(f"Copied {file} (SCL at 20m) to {granule_output_folder}")
 
         except Exception as e:
             logging.error(f"Error copying SCL file {file}: {e}")
