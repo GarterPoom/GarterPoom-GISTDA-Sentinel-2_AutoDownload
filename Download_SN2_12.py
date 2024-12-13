@@ -14,15 +14,15 @@ class SentinelDownloader:
         # Configuration
         self.date_option = 1  # 1 = Number of days from now, 2 = Start Day to End Day
         self.num_days = 10 # specifies the total number of days from the current date to look back for downloads
-        self.end_day = datetime.datetime.strptime('2024-11-30', '%Y-%m-%d').date()  # specify end date in YYYY-MM-DD format
-        self.start_day = datetime.datetime.strptime('2024-11-01', '%Y-%m-%d').date()  # specify start date in YYYY-MM-DD format
+        self.end_day = datetime.datetime.strptime('2024-12-11', '%Y-%m-%d').date()  # specify end date in YYYY-MM-DD format
+        self.start_day = datetime.datetime.strptime('2024-12-01', '%Y-%m-%d').date()  # specify start date in YYYY-MM-DD format
         self.sep_days = 10
         
         # User credentials
         self.users = [
-            {'email': 'your_email_1', 'password': 'your_password_1'},
-            {'email': 'your_email_2', 'password': 'your_password_2'},
-            {'email': 'your_email_3', 'password': 'your_password_3'}
+            {'email': '----------', 'password': '----------'},
+            {'email': '----------', 'password': '----------'},
+            {'email': '----------', 'password': '----------'}
         ]
         
         # Satellite configuration
@@ -118,22 +118,22 @@ class SentinelDownloader:
         return final_ranges
 
     def search_sentinel_data(self, date_range, tile):
-        """Search for Sentinel data based on the given date range and tile"""
+        """Search for Sentinel data based on the given date range, tile, and cloud coverage"""
         start_date, end_date = date_range
         try:
             # Construct the URL for the API query
             url = (f"https://catalogue.dataspace.copernicus.eu/odata/v1/Products?"
-                  f"$filter=contains(Name,'{tile}') and "
-                  f"Collection/Name eq '{self.data_collection}' and "
-                  f"OData.CSC.Intersects(area=geography'SRID=4326;{self.aoi}) and "
-                  f"ContentDate/Start gt {start_date}T00:00:00.000Z and "
-                  f"ContentDate/Start lt {end_date}T00:00:00.000Z")
-            
+                f"$filter=contains(Name,'{tile}') and "
+                f"Collection/Name eq '{self.data_collection}' and "
+                f"OData.CSC.Intersects(area=geography'SRID=4326;{self.aoi}) and "
+                f"ContentDate/Start gt {start_date}T00:00:00.000Z and "
+                f"ContentDate/Start lt {end_date}T00:00:00.000Z")
+        
             # Get the response from the API
             response = requests.get(url)
             response.raise_for_status()
             data = response.json()
-            
+        
             # Extract the product information from the response
             products = []
             for item in data['value'][:20]:  # Limit to 20 items
