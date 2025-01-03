@@ -12,17 +12,17 @@ import shutil
 class SentinelDownloader:
     def __init__(self):
         # Configuration
-        self.date_option = 1  # 1 = Number of days from now, 2 = Start Day to End Day
+        self.date_option = 2  # 1 = Number of days from now, 2 = Start Day to End Day
         self.num_days = 10 # specifies the total number of days from the current date to look back for downloads
-        self.end_day = datetime.datetime.strptime('2024-12-11', '%Y-%m-%d').date()  # specify end date in YYYY-MM-DD format
-        self.start_day = datetime.datetime.strptime('2024-12-01', '%Y-%m-%d').date()  # specify start date in YYYY-MM-DD format
-        self.sep_days = 10
+        self.end_day = datetime.datetime.strptime('END_DATE AS YYYY-MM-DD', '%Y-%m-%d').date()  # specify end date in YYYY-MM-DD format
+        self.start_day = datetime.datetime.strptime('START_DATE AS YYYY-MM-DD', '%Y-%m-%d').date()  # specify start date in YYYY-MM-DD format
+        self.sep_days = 10 # The number of days to cut the time period into multiple periods. Every day, the default value is 10, no need to edit.
         
         # User credentials
         self.users = [
-            {'email': '----------', 'password': '----------'},
-            {'email': '----------', 'password': '----------'},
-            {'email': '----------', 'password': '----------'}
+            {'email': 'your_email_1', 'password': 'your_password_1'},
+            {'email': 'your_email_2', 'password': 'your_password_2'},
+            {'email': 'your_email_3', 'password': 'your_password_3'}
         ]
         
         # Satellite configuration
@@ -32,7 +32,7 @@ class SentinelDownloader:
         self.small_file_size = 10240
         
         # Area of interest and collection
-        self.aoi = "POLYGON((92.0 28.5,109.5 28.5,109.5 5.5,92.0 5.5,92.0 28.5))'"
+        self.aoi = "POLYGON((92.0 28.5,109.5 28.5,109.5 5.5,92.0 5.5,92.0 28.5))'" # Replace to yur actual Area of Interest, in this code is AOI coverage Thailand, Myanmar, Laos and Vietnam.
         self.data_collection = "SENTINEL-2"
         
         # Tiles to process
@@ -121,13 +121,13 @@ class SentinelDownloader:
         """Search for Sentinel data based on the given date range, tile, and cloud coverage"""
         start_date, end_date = date_range
         try:
-            # Construct the URL for the API query
+            # Construct the URL for the API query with cloud coverage filter
             url = (f"https://catalogue.dataspace.copernicus.eu/odata/v1/Products?"
                 f"$filter=contains(Name,'{tile}') and "
                 f"Collection/Name eq '{self.data_collection}' and "
                 f"OData.CSC.Intersects(area=geography'SRID=4326;{self.aoi}) and "
                 f"ContentDate/Start gt {start_date}T00:00:00.000Z and "
-                f"ContentDate/Start lt {end_date}T00:00:00.000Z")
+                f"ContentDate/Start lt {end_date}T00:00:00.000Z")  # Added cloud coverage filter
         
             # Get the response from the API
             response = requests.get(url)
@@ -149,7 +149,7 @@ class SentinelDownloader:
             self.log_and_print(f"Error searching data for {start_date} to {end_date}: {str(e)}")
             time.sleep(120)
             return []
-
+        
     def download_file(self, product, year_dir):
         """Download a single file with progress display"""
         try:
