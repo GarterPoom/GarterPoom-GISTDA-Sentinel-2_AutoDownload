@@ -15,15 +15,15 @@ class SentinelDownloader:
         self.date_option = 2  # 1 = Number of days from now, 2 = Start Day to End Day
         self.num_days = 10 
         self.end_day = datetime.datetime.strptime('2025-01-08', '%Y-%m-%d').date()
-        self.start_day = datetime.datetime.strptime('2025-01-07', '%Y-%m-%d').date()
+        self.start_day = datetime.datetime.strptime('2025-01-01', '%Y-%m-%d').date()
         self.sep_days = 10
         self.max_cloud_coverage = 15  # Maximum cloud coverage percentage
         
         # User credentials
         self.users = [
-            {'email': 'SIRIPOOM31155@gmail.com', 'password': 'iezLxeZ945$9tfmX*A*rDp3WHW$D8y'},
-            {'email': '6231302018@lamduan.mfu.ac.th', 'password': 'AVCwnQCNVs3ZVn%h&!NpJFxYF*nR9W'},
-            {'email': 'siripoom.su@gmail.com', 'password': '799M94401%f6'}
+            {'email': 'your_email_1', 'password': 'your_password_1'},
+            {'email': 'your_email_2', 'password': 'your_password_2'},
+            {'email': 'your_email_3', 'password': 'your_password_3'}
         ]
         
         # Satellite configuration
@@ -33,7 +33,7 @@ class SentinelDownloader:
         self.small_file_size = 10240
         
         # Area of interest and collection
-        self.aoi = "POLYGON((92.0 28.5,109.5 28.5,109.5 5.5,92.0 5.5,92.0 28.5))'"
+        self.aoi = "POLYGON((92.0 28.5,109.5 28.5,109.5 5.5,92.0 5.5,92.0 28.5))"  # Removed extra quote
         self.data_collection = "SENTINEL-2"
         
         # Tiles to process
@@ -74,10 +74,10 @@ class SentinelDownloader:
             url = (f"https://catalogue.dataspace.copernicus.eu/odata/v1/Products?"
                 f"$filter=contains(Name,'{tile}') and "
                 f"Collection/Name eq '{self.data_collection}' and "
-                f"OData.CSC.Intersects(area=geography'SRID=4326;{self.aoi}) and "
+                f"OData.CSC.Intersects(area=geography'SRID=4326;{self.aoi}') and "
                 f"ContentDate/Start gt {start_date}T00:00:00.000Z and "
                 f"ContentDate/Start lt {end_date}T00:00:00.000Z and "
-                f"CloudCover lt {self.max_cloud_coverage}")  # Added cloud coverage filter
+                f"Attributes/OData.CSC.DoubleAttribute/any(att:att/Name eq 'cloudCover' and att/Value lt {self.max_cloud_coverage})")  # Fixed cloud coverage filter syntax
         
             # Get the response from the API
             response = requests.get(url)
