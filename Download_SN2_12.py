@@ -13,16 +13,17 @@ class SentinelDownloader:
     def __init__(self):
         # Configuration
         self.date_option = 2  # 1 = Number of days from now, 2 = Start Day to End Day
-        self.num_days = 10 # specifies the total number of days from the current date to look back for downloads
-        self.end_day = datetime.datetime.strptime('END_DATE AS YYYY-MM-DD', '%Y-%m-%d').date()  # specify end date in YYYY-MM-DD format
-        self.start_day = datetime.datetime.strptime('START_DATE AS YYYY-MM-DD', '%Y-%m-%d').date()  # specify start date in YYYY-MM-DD format
-        self.sep_days = 10 # The number of days to cut the time period into multiple periods. Every day, the default value is 10, no need to edit.
+        self.num_days = 10 
+        self.end_day = datetime.datetime.strptime('2025-01-08', '%Y-%m-%d').date()
+        self.start_day = datetime.datetime.strptime('2025-01-07', '%Y-%m-%d').date()
+        self.sep_days = 10
+        self.max_cloud_coverage = 15  # Maximum cloud coverage percentage
         
         # User credentials
         self.users = [
-            {'email': 'your_email_1', 'password': 'your_password_1'},
-            {'email': 'your_email_2', 'password': 'your_password_2'},
-            {'email': 'your_email_3', 'password': 'your_password_3'}
+            {'email': 'SIRIPOOM31155@gmail.com', 'password': 'iezLxeZ945$9tfmX*A*rDp3WHW$D8y'},
+            {'email': '6231302018@lamduan.mfu.ac.th', 'password': 'AVCwnQCNVs3ZVn%h&!NpJFxYF*nR9W'},
+            {'email': 'siripoom.su@gmail.com', 'password': '799M94401%f6'}
         ]
         
         # Satellite configuration
@@ -32,7 +33,7 @@ class SentinelDownloader:
         self.small_file_size = 10240
         
         # Area of interest and collection
-        self.aoi = "POLYGON((92.0 28.5,109.5 28.5,109.5 5.5,92.0 5.5,92.0 28.5))'" # Replace to yur actual Area of Interest, in this code is AOI coverage Thailand, Myanmar, Laos and Vietnam.
+        self.aoi = "POLYGON((92.0 28.5,109.5 28.5,109.5 5.5,92.0 5.5,92.0 28.5))'"
         self.data_collection = "SENTINEL-2"
         
         # Tiles to process
@@ -63,7 +64,42 @@ class SentinelDownloader:
         self.log_and_print('Download Sentinel-2 file')
         self.log_and_print('Script Download Sentinel-2 From Gistda Version 1.13')
         self.log_and_print(f"Starting time is: {datetime.datetime.now()}")
+        self.log_and_print(f"Maximum cloud coverage set to: {self.max_cloud_coverage}%")
 
+    def search_sentinel_data(self, date_range, tile):
+        """Search for Sentinel data based on the given date range, tile, and cloud coverage"""
+        start_date, end_date = date_range
+        try:
+            # Construct the URL for the API query with cloud coverage filter
+            url = (f"https://catalogue.dataspace.copernicus.eu/odata/v1/Products?"
+                f"$filter=contains(Name,'{tile}') and "
+                f"Collection/Name eq '{self.data_collection}' and "
+                f"OData.CSC.Intersects(area=geography'SRID=4326;{self.aoi}) and "
+                f"ContentDate/Start gt {start_date}T00:00:00.000Z and "
+                f"ContentDate/Start lt {end_date}T00:00:00.000Z and "
+                f"CloudCover lt {self.max_cloud_coverage}")  # Added cloud coverage filter
+        
+            # Get the response from the API
+            response = requests.get(url)
+            response.raise_for_status()
+            data = response.json()
+        
+            # Extract the product information from the response
+            products = []
+            for item in data['value'][:20]:  # Limit to 20 items
+                products.append([
+                    item['Id'],
+                    item['Name'],
+                    item['Checksum'],
+                    item['ContentLength']
+                ])
+            return products
+        except Exception as e:
+            self.log_and_print(f"Error searching data for {start_date} to {end_date}: {str(e)}")
+            time.sleep(120)
+            return []
+
+    # [Rest of the methods remain the same as in the original code]
     def log_and_print(self, message):
         """Helper method to both print and log a message"""
         print(message)
@@ -102,7 +138,6 @@ class SentinelDownloader:
         else:
             date_ranges = [[self.start_day.strftime("%Y-%m-%d"), self.end_day.strftime("%Y-%m-%d")]]
             
-        # Split into 10-day chunks
         final_ranges = []
         for start, end in date_ranges:
             current = datetime.datetime.strptime(start, '%Y-%m-%d')
@@ -117,59 +152,20 @@ class SentinelDownloader:
         
         return final_ranges
 
-    def search_sentinel_data(self, date_range, tile):
-        """Search for Sentinel data based on the given date range, tile, and cloud coverage"""
-        start_date, end_date = date_range
-        try:
-            # Construct the URL for the API query with cloud coverage filter
-            url = (f"https://catalogue.dataspace.copernicus.eu/odata/v1/Products?"
-                f"$filter=contains(Name,'{tile}') and "
-                f"Collection/Name eq '{self.data_collection}' and "
-                f"OData.CSC.Intersects(area=geography'SRID=4326;{self.aoi}) and "
-                f"ContentDate/Start gt {start_date}T00:00:00.000Z and "
-                f"ContentDate/Start lt {end_date}T00:00:00.000Z")  # Added cloud coverage filter
-        
-            # Get the response from the API
-            response = requests.get(url)
-            response.raise_for_status()
-            data = response.json()
-        
-            # Extract the product information from the response
-            products = []
-            for item in data['value'][:20]:  # Limit to 20 items
-                products.append([
-                    item['Id'],
-                    item['Name'],
-                    item['Checksum'],
-                    item['ContentLength']
-                ])
-            return products
-        except Exception as e:
-            # Log the error and wait for 2 minutes before retrying
-            self.log_and_print(f"Error searching data for {start_date} to {end_date}: {str(e)}")
-            time.sleep(120)
-            return []
-        
     def download_file(self, product, year_dir):
         """Download a single file with progress display"""
         try:
-            # Get a random user credentials
             username, password = self.get_random_credentials()
-            
-            # Get the authentication token
             token = self.get_keycloak_token(username, password)
             
-            # Create a requests session with the authentication token
             session = requests.Session()
             session.headers.update({'Authorization': f'Bearer {token}'})
             
-            # Extract the product information
             product_id, product_name, checksum, content_length = product
             filename = f"{product_name[:-5]}.zip"
             file_path = year_dir / filename
             url = f'https://catalogue.dataspace.copernicus.eu/odata/v1/Products({product_id})/$value'
             
-            # Make the API request
             response = session.get(url, allow_redirects=False)
             while response.status_code in (301, 302, 303, 307):
                 url = response.headers['Location']
@@ -177,7 +173,6 @@ class SentinelDownloader:
             response = session.get(url, verify=False, stream=True)
             response.raise_for_status()
             
-            # Save the file to disk
             with open(file_path, 'wb') as f:
                 total_size = int(response.headers.get('content-length', 0))
                 progress = tqdm(total=total_size, unit='iB', unit_scale=True, desc=filename)
@@ -187,13 +182,11 @@ class SentinelDownloader:
                         progress.update(len(chunk))
                 progress.close()
             
-            # Add the file to the list of downloaded files
             self.downloaded_files.append(filename)
             self.log_and_print(f"Download completed: {filename}")
             return True
             
         except Exception as e:
-            # Log the error and remove the file if it exists
             self.log_and_print(f"Error downloading {product_name}: {str(e)}")
             if file_path.exists():
                 file_path.unlink()
@@ -207,85 +200,58 @@ class SentinelDownloader:
             file_path = year_dir / filename
             
             if not file_path.exists():
-                # Skip if the file does not exist
                 continue
                 
             try:
                 if not zipfile.is_zipfile(file_path):
-                    # Remove the file if it is corrupt
                     self.log_and_print(f"Corrupt zip file, removing: {filename}")
                     file_path.unlink()
             except Exception as e:
-                # Log the error and remove the file if it exists
                 self.log_and_print(f"Error verifying {filename}: {str(e)}")
                 if file_path.exists():
                     file_path.unlink()
 
     def run(self):
-        """
-        Main execution method to download one image per tile in each date range
-        """
+        """Main execution method"""
         try:
             self.setup_logging()
-            
-            # Calculate the date ranges to search for
             date_ranges = self.calculate_date_ranges()
             
-            # Process each date range
             for date_range in date_ranges:
                 self.log_and_print(f"Processing date range: {date_range[0]} to {date_range[1]}")
-                
-                # Track tiles downloaded in this date range
                 tiles_downloaded_in_range = set()
                 
-                # Process each tile
                 for tile in self.tiles:
-                    # Skip if tile has already been downloaded in this date range
                     if tile in tiles_downloaded_in_range:
                         continue
                     
-                    # Search for products
                     products = self.search_sentinel_data(date_range, tile)
-                    
-                    # Filter products by level
                     products = [p for p in products if any(level in p[1] for level in self.levels)]
                     
-                    # If products found for this tile
                     if products:
-                        # Select the first product (most recent)
                         product = products[0]
-                        
                         year = product[1][11:15]
                         year_dir = self.data_dir / year
-                        
-                        # Create the year directory if it doesn't exist
                         year_dir.mkdir(exist_ok=True)
                         
-                        # Check if file already exists and is valid
                         filename = f"{product[1][:-5]}.zip"
                         file_path = year_dir / filename
                         
                         if file_path.exists():
                             if zipfile.is_zipfile(file_path):
-                                # If file exists and is valid, mark tile as downloaded
                                 self.log_and_print(f"Tile {tile} already exists: {filename}")
                                 tiles_downloaded_in_range.add(tile)
                                 continue
                             else:
-                                # Remove the file if it is corrupt
                                 file_path.unlink()
                         
-                        # Download file
                         if self.download_file(product, year_dir):
                             tiles_downloaded_in_range.add(tile)
                             self.log_and_print(f"Downloaded tile {tile}: {filename}")
                 
-                # Log tiles downloaded in this date range
                 self.log_and_print(f"Tiles downloaded in range {date_range}: {tiles_downloaded_in_range}")
             
-            # Verify all downloads at the end
             self.verify_downloads()
-            
             self.log_and_print("Download process completed successfully")
             self.log_and_print(f"Ending time is: {datetime.datetime.now()}")
             
