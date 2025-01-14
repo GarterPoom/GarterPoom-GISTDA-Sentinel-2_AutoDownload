@@ -9,15 +9,16 @@ from pathlib import Path
 from tqdm import tqdm
 import shutil
 
+
 class SentinelDownloader:
     def __init__(self):
         # Configuration
         self.date_option = 2  # 1 = Number of days from now, 2 = Start Day to End Day
         self.num_days = 10 
-        self.end_day = datetime.datetime.strptime('2025-01-08', '%Y-%m-%d').date()
-        self.start_day = datetime.datetime.strptime('2025-01-01', '%Y-%m-%d').date()
+        self.end_day = datetime.datetime.strptime('2025-01-14', '%Y-%m-%d').date()
+        self.start_day = datetime.datetime.strptime('2025-01-13', '%Y-%m-%d').date()
         self.sep_days = 10
-        self.max_cloud_coverage = 15  # Maximum cloud coverage percentage
+        self.max_cloud_coverage = 100  # Maximum cloud coverage percentage
         
         # User credentials
         self.users = [
@@ -35,12 +36,15 @@ class SentinelDownloader:
         # Area of interest and collection
         self.aoi = "POLYGON((92.0 28.5,109.5 28.5,109.5 5.5,92.0 5.5,92.0 28.5))"  # Removed extra quote
         self.data_collection = "SENTINEL-2"
-        
+
         # Tiles to process
         self.tiles = ['T47QLA', 'T47QLB', 'T47PMR', 'T47PMT', 'T47QQB', 'T48QTE', 
                      'T48QTD', 'T47PMS', 'T47QNC', 'T48QTF', 'T47PRR', 'T48QVD',
                      'T47QMC', 'T47QMU', 'T47PRQ', 'T48QVE', 'T47PNP', 'T47QQA', 
-                     'T48QUF', 'T47PNQ', 'T48PTC']
+                     'T48QUF', 'T47PNQ', 'T48PTC', 'T47PQS', 'T47PQT', 'T47PPT',
+                     'T47PPS', 'T47QQT', 'T47QQS', 'T47QPT', 'T47QPS', 'T48QYJ',
+                     'T48QYK', 'T48QZJ', 'T48QZK', 'T48QYH', 'T48QYJ', 'T48QZH',
+                     'T48QZJ', 'T47PQU',]
         
         # Initialize paths
         self.root_dir = Path(os.getcwd())
