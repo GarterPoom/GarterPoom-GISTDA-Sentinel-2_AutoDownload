@@ -15,10 +15,10 @@ class SentinelDownloader:
         # Configuration
         self.date_option = 2  # 1 = Number of days from now, 2 = Start Day to End Day
         self.num_days = 10 
-        self.end_day = datetime.datetime.strptime('2025-01-14', '%Y-%m-%d').date()
-        self.start_day = datetime.datetime.strptime('2025-01-13', '%Y-%m-%d').date()
+        self.end_day = datetime.datetime.strptime('2023-02-27', '%Y-%m-%d').date()
+        self.start_day = datetime.datetime.strptime('2023-02-22', '%Y-%m-%d').date()
         self.sep_days = 10
-        self.max_cloud_coverage = 100  # Maximum cloud coverage percentage
+        self.max_cloud_coverage = 15  # Maximum c loud coverage percentage
         
         # User credentials
         self.users = [
@@ -30,7 +30,7 @@ class SentinelDownloader:
         # Satellite configuration
         self.satellite = 'Sentinel-2'
         self.main_directory = 'Sentinel_2' if self.satellite == 'Sentinel-2' else 'Sentinel_1'
-        self.levels = ['MSIL2A']
+        self.levels = ['MSIL2A'] # Sentinel-2 MSIL2A || MSIL1C
         self.small_file_size = 10240
         
         # Area of interest and collection
@@ -43,8 +43,7 @@ class SentinelDownloader:
                      'T47QMC', 'T47QMU', 'T47PRQ', 'T48QVE', 'T47PNP', 'T47QQA', 
                      'T48QUF', 'T47PNQ', 'T48PTC', 'T47PQS', 'T47PQT', 'T47PPT',
                      'T47PPS', 'T47QQT', 'T47QQS', 'T47QPT', 'T47QPS', 'T48QYJ',
-                     'T48QYK', 'T48QZJ', 'T48QZK', 'T48QYH', 'T48QYJ', 'T48QZH',
-                     'T48QZJ', 'T47PQU',]
+                     'T48QYK', 'T47PQU', 'T47PPS', 'T47PPR', 'T48PTA']
         
         # Initialize paths
         self.root_dir = Path(os.getcwd())
