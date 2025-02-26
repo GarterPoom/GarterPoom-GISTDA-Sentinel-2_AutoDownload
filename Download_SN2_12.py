@@ -15,16 +15,16 @@ class SentinelDownloader:
         # Configuration
         self.date_option = 2  # 1 = Number of days from now, 2 = Start Day to End Day
         self.num_days = 10 
-        self.end_day = datetime.datetime.strptime('2025-02-03', '%Y-%m-%d').date()
-        self.start_day = datetime.datetime.strptime('2025-01-31', '%Y-%m-%d').date()
+        self.end_day = datetime.datetime.now().date() # Date in Now as yyyy-mm-dd
+        self.start_day = datetime.datetime.strptime('2025-02-23', '%Y-%m-%d').date()
         self.sep_days = 10
         self.max_cloud_coverage = 15  # Maximum c loud coverage percentage
         
         # User credentials
         self.users = [
-            {'email': 'your_email_1', 'password': 'your_password_1'},
-            {'email': 'your_email_2', 'password': 'your_password_2'},
-            {'email': 'your_email_3', 'password': 'your_password_3'}
+            {'email': '------------', 'password': '------------'},
+            {'email': '------------', 'password': '------------'},
+            {'email': '------------', 'password': '------------'}
         ]
         
         # Satellite configuration
