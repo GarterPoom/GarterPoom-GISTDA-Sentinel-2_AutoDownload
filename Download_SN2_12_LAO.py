@@ -16,7 +16,7 @@ class SentinelDownloader:
         self.date_option = 2  # 1 = Number of days from now, 2 = Start Day to End Day
         self.num_days = 10 
         self.end_day = datetime.datetime.now().date() # Date in Now as yyyy-mm-dd
-        self.start_day = datetime.datetime.strptime('2018-06-01', '%Y-%m-%d').date()
+        self.start_day = datetime.datetime.strptime('2025-02-22', '%Y-%m-%d').date()
         self.sep_days = 10
         self.max_cloud_coverage = 15  # Maximum c loud coverage percentage
         
@@ -37,10 +37,12 @@ class SentinelDownloader:
         self.aoi = "POLYGON((92.0 28.5,109.5 28.5,109.5 5.5,92.0 5.5,92.0 28.5))"  # Removed extra quote
         self.data_collection = "SENTINEL-2"
 
-        # Tiles to process Coverage in Cambodia
-        self.tiles = ['T48PTA', 'T48PUA', 'T48PVA', 'T48PWA', 'T48PXA', 'T48PXB', 'T48PYB', 'T48PYA', 'T48PTV', 'T48PUV', 'T48PVV',
-                      'T48PWV', 'T48PXV', 'T48PYV', 'T48PTU', 'T48PUU', 'T48PVU', 'T48PWU', 'T48PXU', 'T48PYU', 'T48PUT', 'T48PVT', 
-                      'T48PWT', 'T48PXT', 'T48PVS']
+        # Tiles to process Coverage in LAO
+        self.tiles = ['T47QQE', 'T47QRE', 'T48QTK', 'T47QPE', 'T47QPD', 'T47QPC', 'T47QQD', 'T47QRD', 'T48QTJ', 'T48QUJ',
+                      'T47QPC', 'T47QQC', 'T47QRC', 'T48QTH', 'T48QUH', 'T48QUH', 'T48QVJ', 'T48QVH', 'T47QPB', 'T47QQB',
+                      'T47QRB', 'T48QTG', 'T48QUG', 'T48QVG', 'T47QQA', 'T47QRA', 'T48QTF', 'T48QUF', 'T48QVF', 'T48QWF',
+                      'T47QQV', 'T47QRV', 'T48QTE', 'T48QVE', 'T48QWE', 'T48QVD', 'T48QWD', 'T48QXD', 'T48PWC', 'T48PXC',
+                      'T48PYC', 'T48PWB', 'T48PXB', 'T48PYB', 'T48PWA', 'T48PXA', 'T48PYA']
         
         # Initialize paths
         self.root_dir = Path(os.getcwd())
