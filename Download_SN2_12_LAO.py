@@ -16,7 +16,7 @@ class SentinelDownloader:
         self.date_option = 2  # 1 = Number of days from now, 2 = Start Day to End Day
         self.num_days = 10 
         self.end_day = datetime.datetime.now().date() # Date in Now as yyyy-mm-dd
-        self.start_day = datetime.datetime.strptime('2025-02-22', '%Y-%m-%d').date()
+        self.start_day = datetime.datetime.strptime('2025-02-01', '%Y-%m-%d').date()
         self.sep_days = 10
         self.max_cloud_coverage = 15  # Maximum c loud coverage percentage
         
