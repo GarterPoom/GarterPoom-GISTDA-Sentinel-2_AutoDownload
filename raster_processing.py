@@ -4,7 +4,6 @@ from osgeo import gdal
 from pathlib import Path
 import time
 import logging
-
 def setup_logging():
     """
     Set up logging to help diagnose issues.
@@ -19,12 +18,14 @@ def setup_logging():
     )
     return logging.getLogger(__name__)
 
+logger = setup_logging()
+
 def resample_image(input_path, output_path, target_resolution=10):
     """
     Resamples a single image to a target resolution using GDAL and saves it as a compressed GeoTIFF file.
     """
     try:
-        print(f"Resampling image: {input_path} to {output_path} at {target_resolution}m resolution.")
+        logger.info(f"Resampling image: {input_path} to {output_path} at {target_resolution}m resolution.")
         
         # Ensure output directory exists
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -32,7 +33,8 @@ def resample_image(input_path, output_path, target_resolution=10):
         # Open the input dataset
         src_ds = gdal.Open(input_path)
         if not src_ds:
-            raise ValueError(f"Could not open {input_path}")
+            logger.error(f"Could not open {input_path}")
+            return False
             
         # Get the input resolution
         gt = src_ds.GetGeoTransform()
@@ -70,10 +72,10 @@ def resample_image(input_path, output_path, target_resolution=10):
         # Close the dataset
         src_ds = None
         
-        print(f"Resampling completed with compression: {output_path}")
+        logger.info(f"Resampling completed with compression: {output_path}")
         return True
     except Exception as e:
-        print(f"Error resampling image {input_path}: {str(e)}")
+        logger.error(f"Error resampling image {input_path}: {e}", exc_info=True)
         return False
 
 def safe_remove(file_path, max_attempts=5, delay=1):
@@ -93,7 +95,7 @@ def safe_remove(file_path, max_attempts=5, delay=1):
                 time.sleep(delay)
             continue
         except Exception as e:
-            print(f"Error removing file {file_path}: {str(e)}")
+            logger.error(f"Error removing file {file_path}: {e}", exc_info=True)
             return False
     return False
 
@@ -107,21 +109,22 @@ def build_pyramids_nearest(raster_path, overview_levels=[2, 4, 8, 16, 32], resam
         resample_alg (str): Resampling algorithm ('NEAREST', 'AVERAGE', etc.)
     """
     try:
-        print(f"Building pyramids for: {raster_path}")
+        logger.info(f"Building pyramids for: {raster_path}")
         
         dataset = gdal.Open(raster_path, gdal.GA_Update)
         if not dataset:
-            raise ValueError(f"Could not open raster for pyramid building: {raster_path}")
+            logger.error(f"Could not open raster for pyramid building: {raster_path}")
+            return False
         
         # Build overviews
         dataset.BuildOverviews(resample_alg, overview_levels)
         dataset = None  # Close dataset
         
-        print(f"Successfully built pyramids: {overview_levels} using {resample_alg}")
+        logger.info(f"Successfully built pyramids: {overview_levels} using {resample_alg}")
         return True
 
     except Exception as e:
-        print(f"Error building pyramids for {raster_path}: {str(e)}")
+        logger.error(f"Error building pyramids for {raster_path}: {e}", exc_info=True)
         return False
 
 def process_bands(input_folder, output_folder, scl_output_folder=None):
@@ -136,7 +139,7 @@ def process_bands(input_folder, output_folder, scl_output_folder=None):
     """
     temp_folder = None
     try:
-        print(f"Processing bands in folder: {input_folder}")
+        logger.info(f"Processing bands in folder: {input_folder}")
         
         input_folder = Path(input_folder)
         output_folder = Path(output_folder)
@@ -149,7 +152,7 @@ def process_bands(input_folder, output_folder, scl_output_folder=None):
         
         jp2_files = list(input_folder.glob('*.jp2'))
         if not jp2_files:
-            print("No JP2 files found in the input folder.")
+            logger.warning(f"No JP2 files found in the input folder: {input_folder}")
             return
 
         temp_folder = output_folder / 'temp'
@@ -197,7 +200,7 @@ def process_bands(input_folder, output_folder, scl_output_folder=None):
         output_filename = f"{tile_date_timestamp}.tif"
         output_path = output_folder / output_filename
 
-        print(f"Creating compressed output file: {output_path}")
+        logger.info(f"Creating compressed output file: {output_path}")
 
         # Create VRT with options
         vrt_options = gdal.BuildVRTOptions(separate=True)
@@ -213,8 +216,9 @@ def process_bands(input_folder, output_folder, scl_output_folder=None):
                 'TILED=YES',
                 'BLOCKXSIZE=256',
                 'BLOCKYSIZE=256',
-                'BIGTIFF=YES'
-            ]
+                'BIGTIFF=YES',
+            ],
+            stats=True  # <-- THIS IS THE KEY FIX: Calculate and save statistics
         )
         
         output_ds = gdal.Translate(
@@ -261,10 +265,10 @@ def process_bands(input_folder, output_folder, scl_output_folder=None):
                 options=translate_options_scl
             )
             
-            print(f"Exported SCL file: {scl_output_path}")
+            logger.info(f"Exported SCL file: {scl_output_path}")
         
         # Clean up temporary files
-        print("Cleaning up temporary files.")
+        logger.info("Cleaning up temporary files.")
         for file in resampled_files:
             safe_remove(file)
         safe_remove(vrt_path)
@@ -273,10 +277,10 @@ def process_bands(input_folder, output_folder, scl_output_folder=None):
             try:
                 temp_folder.rmdir()
             except Exception as e:
-                print(f"Warning: Could not remove temp folder: {str(e)}")
+                logger.warning(f"Could not remove temp folder: {e}")
 
     except Exception as e:
-        print(f"Error processing bands: {str(e)}")
+        logger.error(f"Error processing bands in {input_folder}: {e}", exc_info=True)
         raise
     
     finally:
@@ -287,35 +291,39 @@ def process_bands(input_folder, output_folder, scl_output_folder=None):
                     safe_remove(file)
                 temp_folder.rmdir()
             except Exception as e:
-                print(f"Warning: Failed final cleanup: {str(e)}")
+                logger.warning(f"Failed final cleanup of temp folder: {e}")
 
-def find_and_process_folders(root_folder, output_folder):
+def find_and_process_folders(root_folder, output_folder, scl_output_folder):
     """
     Searches for and processes folders containing .jp2 files.
     """
     try:
         root_folder = Path(root_folder)
         output_folder = Path(output_folder)
+        scl_output_folder = Path(scl_output_folder)
         
-        print(f"Searching for folders in: {root_folder}")
+        logger.info(f"Searching for folders in: {root_folder}")
         
+        processed_folders = 0
         for dirpath in root_folder.rglob('*'):
             if dirpath.is_dir() and any(f.suffix == '.jp2' for f in dirpath.iterdir()):
                 relative_path = dirpath.relative_to(root_folder)
                 current_output_folder = output_folder / relative_path
-                print(f"Found JP2 files in: {dirpath}. Processing...")
-                process_bands(dirpath, current_output_folder)
+                current_scl_output_folder = scl_output_folder / relative_path
+                logger.info(f"Found JP2 files in: {dirpath}. Processing...")
+                process_bands(dirpath, current_output_folder, current_scl_output_folder)
+                processed_folders += 1
         
-        print("All folders processed.")
+        if processed_folders == 0:
+            logger.warning("No folders with JP2 files were found to process.")
+        else:
+            logger.info(f"All {processed_folders} folders processed.")
         
     except Exception as e:
-        print(f"Error processing folders: {str(e)}")
+        logger.error(f"Error processing folders: {e}", exc_info=True)
         sys.exit(1)
 
 def main():
-    # Configure logging
-    logger = setup_logging()
-
     try:
         # Enable GDAL exceptions
         gdal.UseExceptions()
@@ -331,8 +339,8 @@ def main():
 
         # Check if input folder exists
         if not root_folder.exists():
-            logger.error(f"Input folder does not exist: {root_folder}")
-            logger.info("Please create a 'Classified_Image' folder and place Sentinel-2 JP2 files inside.")
+            logger.error(f"Input folder 'SN2_Extract' does not exist in {current_dir}")
+            logger.info("Please create the 'SN2_Extract' folder and place your Sentinel-2 JP2 files inside.")
             sys.exit(1)
 
         # Create output folders if they don't exist
@@ -343,38 +351,11 @@ def main():
         jp2_files = list(root_folder.rglob('*.jp2'))
         
         if not jp2_files:
-            logger.error(f"No JP2 files found in {root_folder}")
-            logger.info("Ensure Sentinel-2 JP2 files are present in the 'Classified_Image' folder.")
+            logger.error(f"No .jp2 files found in {root_folder} or its subdirectories.")
+            logger.info("Ensure Sentinel-2 .jp2 files are present in the 'SN2_Extract' folder.")
             sys.exit(1)
 
         logger.info(f"Found {len(jp2_files)} JP2 files to process")
-
-        def find_and_process_folders(root_folder, output_folder, scl_output_folder):
-            try:
-                root_folder = Path(root_folder)
-                output_folder = Path(output_folder)
-                scl_output_folder = Path(scl_output_folder)
-                
-                logger.info(f"Searching for folders in: {root_folder}")
-                
-                processed_folders = 0
-                for dirpath in root_folder.rglob('*'):
-                    if dirpath.is_dir() and any(f.suffix == '.jp2' for f in dirpath.iterdir()):
-                        relative_path = dirpath.relative_to(root_folder)
-                        current_output_folder = output_folder / relative_path
-                        current_scl_output_folder = scl_output_folder / relative_path
-                        logger.info(f"Found JP2 files in: {dirpath}. Processing...")
-                        process_bands(dirpath, current_output_folder, current_scl_output_folder)
-                        processed_folders += 1
-                
-                if processed_folders == 0:
-                    logger.warning("No folders with JP2 files were processed.")
-                else:
-                    logger.info(f"Processed {processed_folders} folders.")
-                
-            except Exception as e:
-                logger.error(f"Error processing folders: {str(e)}")
-                sys.exit(1)
         
         # Run processing
         find_and_process_folders(root_folder, output_folder, scl_output_folder)
@@ -382,7 +363,7 @@ def main():
         logger.info("Processing complete.")
 
     except Exception as e:
-        logger.error(f"Unexpected error: {str(e)}")
+        logger.critical(f"An unexpected error occurred in main(): {e}", exc_info=True)
         sys.exit(1)
 
 if __name__ == "__main__":
