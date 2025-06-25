@@ -185,10 +185,11 @@ def process_bands(input_folder, output_folder, scl_output_folder=None):
                         break
 
         # Process regular bands
-        ordered_bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 
-                        'B08', 'B8A', 'B09', 'B11', 'B12']
-        final_resampled_files = [band_paths[band] for band in ordered_bands 
-                               if band in band_paths]
+        # B04, B03, B02 for natural color composite as default
+        ordered_bands = ['B04', 'B03', 'B02', 'B01', 'B05', 'B06', 'B07', 
+                         'B08', 'B8A', 'B09', 'B11', 'B12']
+        final_band_order = [band for band in ordered_bands if band in band_paths]
+        final_resampled_files = [band_paths[band] for band in final_band_order]
 
         if not final_resampled_files:
             raise ValueError("No valid band files were processed")
@@ -227,12 +228,19 @@ def process_bands(input_folder, output_folder, scl_output_folder=None):
             options=translate_options
         )
 
-        # Set band descriptions using ordered_bands directly
-        for idx, band_name in enumerate(ordered_bands, start=1):
-            if band_name in band_paths:  # Only set description if band exists
-                band = output_ds.GetRasterBand(idx)
+        # Set band descriptions and color interpretation for default RGB display
+        color_map = {
+            'B04': gdal.GCI_RedBand,
+            'B03': gdal.GCI_GreenBand,
+            'B02': gdal.GCI_BlueBand
+        }
+        for idx, band_name in enumerate(final_band_order, start=1):
+            band = output_ds.GetRasterBand(idx)
+            if band:
                 band.SetDescription(band_name)
-        
+                if band_name in color_map:
+                    band.SetColorInterpretation(color_map[band_name])
+
         # Close VRT dataset
         output_ds = None
         vrt_ds = None
